@@ -41,5 +41,14 @@ pipeline {
                 archiveArtifacts(artifacts: 'frontend/dist/frontend/*')
             }
         }
+
+        stage('Notify') {
+            environment {
+                WEBHOOK_URL = 'https://hooks.slack.com/services/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'
+            }
+            steps {
+                sh 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"Константин Пронин собрал приложение."}\' $WEBHOOK_URL'
+            }
+        }
     }
 }
