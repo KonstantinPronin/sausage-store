@@ -1,0 +1,15 @@
+stages:
+  - build
+
+build-fronten:
+  stage: build
+  only:
+    changes:
+      - frontend/*
+  script:
+    - cd frontend
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/frontend

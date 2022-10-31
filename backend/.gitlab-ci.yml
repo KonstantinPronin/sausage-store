@@ -1,0 +1,14 @@
+stages:
+  - build
+
+build-backend:
+  stage: build
+  only:
+    changes:
+      - backend/*
+  script:
+    - cd backend
+    - mvn package
+  artifacts:
+    paths:
+      - backend/target/sausage-store-0.0.1.jar
