@@ -1,7 +1,7 @@
 stages:
   - build
 
-build-fronten:
+build-frontend:
   stage: build
   only:
     changes:
