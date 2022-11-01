@@ -1,14 +1,39 @@
-stages:
-  - build
+variables:
+  BACKEND_NOTIFICATION_DATA: |
+    {
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "Backend is ready, <$BACKEND_ARTIFACT_PATH|download artifacts>."
+          }
+        }
+      ]
+    }
 
 build-backend:
   stage: build
-  only:
-    changes:
-      - backend/*
+  rules:
+    - changes:
+        - backend/*
   script:
     - cd backend
     - mvn package
+    - echo "BACKEND_ARTIFACT_PATH=$CI_JOB_URL/artifacts/download" >> build.env
   artifacts:
     paths:
       - backend/target/sausage-store-0.0.1.jar
+    reports:
+      dotenv: backend/build.env
+
+slack-notification-backend:
+  stage: notify
+  needs:
+    - build-backend
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /\[notify]/
+      changes:
+        - backend/*
+  script:
+    - 'curl --request POST --header "Content-type: application/json" --data "$BACKEND_NOTIFICATION_DATA" "$WEBHOOK_URL"'
