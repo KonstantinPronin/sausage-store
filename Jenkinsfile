@@ -11,6 +11,10 @@ pipeline {
         nodejs 'nodejs15.4.0' // А NodeJS нужен для фронта
     }
 
+    environment {
+        WEBHOOK_URL = 'https://hooks.slack.com/services/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'
+    }
+
     stages {
         stage('Build & Test backend') {
             steps {
@@ -37,18 +41,15 @@ pipeline {
 
         stage('Save artifacts') {
             steps {
-                archiveArtifacts(artifacts: 'backend/target/sausage-store-0.0.1-SNAPSHOT.jar')
+                archiveArtifacts(artifacts: 'backend/target/sausage-store-0.0.1.jar')
                 archiveArtifacts(artifacts: 'frontend/dist/frontend/*')
             }
         }
+    }
 
-        stage('Notify') {
-            environment {
-                WEBHOOK_URL = 'https://hooks.slack.com/services/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'
-            }
-            steps {
-                sh 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"Константин Пронин собрал приложение."}\' $WEBHOOK_URL'
-            }
+    post {
+        success {
+            sh 'curl -X POST -H \'Content-type: application/json\' --data \'{"text":"Константин Пронин собрал приложение."}\' $WEBHOOK_URL'
         }
     }
 }

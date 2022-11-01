@@ -1,15 +1,40 @@
-stages:
-  - build
+variables:
+  FRONTEND_NOTIFICATION_DATA: |
+    {
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "Frontend is ready, <$FRONTEND_ARTIFACT_PATH|download artifacts>."
+          }
+        }
+      ]
+    }
 
-build-fronten:
+build-frontend:
   stage: build
-  only:
-    changes:
-      - frontend/*
+  rules:
+    - changes:
+        - frontend/*
   script:
     - cd frontend
     - npm install
     - npm run build
+    - echo "FRONTEND_ARTIFACT_PATH=$CI_JOB_URL/artifacts/download" >> build.env
   artifacts:
     paths:
       - frontend/dist/frontend
+    reports:
+      dotenv: frontend/build.env
+
+slack-notification-frontend:
+  stage: notify
+  needs:
+    - build-frontend
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /\[notify]/
+      changes:
+        - frontend/*
+  script:
+    - 'curl --request POST --header "Content-type: application/json" --data "$FRONTEND_NOTIFICATION_DATA" "$WEBHOOK_URL"'
