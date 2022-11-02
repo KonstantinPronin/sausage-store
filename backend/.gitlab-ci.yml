@@ -36,6 +36,7 @@ sonarqube-backend:
     - >
       mvn verify sonar:sonar 
       -Dsonar.qualitygate.wait=true
+      -Dsonar.projectName=${SONAR_BACKEND_PROJECT_KEY}
       -Dsonar.projectKey=${SONAR_BACKEND_PROJECT_KEY}
       -Dsonar.host.url=${SONARQUBE_URL}
       -Dsonar.login=${SONARQUBE_LOGIN}     
