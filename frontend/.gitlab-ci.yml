@@ -28,6 +28,19 @@ build-frontend:
     reports:
       dotenv: frontend/build.env
 
+sonarqube-frontend:
+  stage: test
+  image: sonarsource/sonar-scanner-cli:latest
+  script:
+    - cd frontend
+    - >
+      sonar-scanner 
+      -Dsonar.qualitygate.wait=true
+      -Dsonar.sources=.
+      -Dsonar.projectKey=${SONAR_FRONTEND_PROJECT_KEY}
+      -Dsonar.host.url=${SONARQUBE_URL}
+      -Dsonar.login=${SONARQUBE_LOGIN}
+
 slack-notification-frontend:
   stage: notify
   needs:
