@@ -23,7 +23,7 @@ build-backend:
     - echo "BACKEND_ARTIFACT_PATH=$CI_JOB_URL/artifacts/download" >> build.env
   artifacts:
     paths:
-      - backend/target/sausage-store-0.0.1.jar
+      - backend/target/sausage-store-0.0.1-SNAPSHOT.jar
       - ${CI_PROJECT_DIR}/.m2/
     reports:
       dotenv: backend/build.env
