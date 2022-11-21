@@ -1,7 +1,18 @@
 include:
   - local: "backend/.gitlab-ci.yml"
   - local: "frontend/.gitlab-ci.yml"
+  - template: Security/SAST.gitlab-ci.yml
 
 stages:
   - build
+  - test
   - notify
+
+spotbugs-sast:
+  stage: test
+  variables:
+    COMPILE: "false"
+    SAST_JAVA_VERSION: 16
+    MAVEN_REPO_PATH: ${CI_PROJECT_DIR}/.m2/repository
+  needs:
+    - build-backend
