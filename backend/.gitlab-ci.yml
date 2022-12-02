@@ -6,7 +6,7 @@ variables:
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": "Backend is ready, <$BACKEND_ARTIFACT_PATH|download artifacts>."
+            "text": "Backend #${VERSION} is ready, <${NEXUS_REPO_URL}/sausage-store-pronin-konstantin-backend/com/yandex/practicum/devops/sausage-store/${VERSION}/sausage-store-${VERSION}.jar|download artifacts>."
           }
         }
       ]
@@ -19,14 +19,11 @@ build-backend:
         - backend/*
   script:
     - cd backend
-    - mvn package -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository
-    - echo "BACKEND_ARTIFACT_PATH=$CI_JOB_URL/artifacts/download" >> build.env
+    - mvn -Dmaven.repo.local=${M2_REPO} -Dversion.application=${VERSION} package
   artifacts:
     paths:
-      - backend/target/sausage-store-0.0.1-SNAPSHOT.jar
+      - backend/target/sausage-store-${VERSION}.jar
       - ${CI_PROJECT_DIR}/.m2/
-    reports:
-      dotenv: backend/build.env
 
 sonarqube-backend:
   stage: test
@@ -41,10 +38,21 @@ sonarqube-backend:
       -Dsonar.host.url=${SONARQUBE_URL}
       -Dsonar.login=${SONARQUBE_LOGIN}     
 
+upload-backend:
+  stage: upload
+  needs:
+    - build-backend
+  only:
+    changes:
+      - backend/*
+  script:
+    - cd backend
+    - mvn -Dmaven.repo.local=${M2_REPO} -Dversion.application=${VERSION} -DskipTests -Dmaven.install.skip=true -s settings.xml deploy
+
 slack-notification-backend:
   stage: notify
   needs:
-    - build-backend
+    - upload-backend
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /\[notify]/
       changes:

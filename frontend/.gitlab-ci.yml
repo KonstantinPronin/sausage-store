@@ -1,4 +1,5 @@
 variables:
+  FRONTEND_ARTIFACT_PATH: ${NEXUS_REPO_URL}/sausage-store-pronin-konstantin-frontend/sausage-store/${VERSION}/sausage-store-${VERSION}.tar.gz
   FRONTEND_NOTIFICATION_DATA: |
     {
       "blocks": [
@@ -6,7 +7,7 @@ variables:
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": "Frontend is ready, <$FRONTEND_ARTIFACT_PATH|download artifacts>."
+            "text": "Frontend #${VERSION} is ready, <$FRONTEND_ARTIFACT_PATH|download artifacts>."
           }
         }
       ]
@@ -21,12 +22,9 @@ build-frontend:
     - cd frontend
     - npm install
     - npm run build
-    - echo "FRONTEND_ARTIFACT_PATH=$CI_JOB_URL/artifacts/download" >> build.env
   artifacts:
     paths:
       - frontend/dist/frontend
-    reports:
-      dotenv: frontend/build.env
 
 sonarqube-frontend:
   stage: test
@@ -41,10 +39,22 @@ sonarqube-frontend:
       -Dsonar.host.url=${SONARQUBE_URL}
       -Dsonar.login=${SONARQUBE_LOGIN}
 
+upload-frontend:
+  stage: upload
+  needs:
+    - build-frontend
+  rules:
+    - changes:
+        - frontend/*
+  script:
+    - cd frontend/dist
+    - tar czvf sausage-store-${VERSION}.tar.gz frontend
+    - curl -v -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" --upload-file sausage-store-${VERSION}.tar.gz ${FRONTEND_ARTIFACT_PATH}
+
 slack-notification-frontend:
   stage: notify
   needs:
-    - build-frontend
+    - upload-frontend
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /\[notify]/
       changes:
