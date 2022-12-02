@@ -42,9 +42,9 @@ upload-backend:
   stage: upload
   needs:
     - build-backend
-  only:
-    changes:
-      - backend/*
+  rules:
+    - changes:
+        - backend/*
   script:
     - cd backend
     - mvn -Dmaven.repo.local=${M2_REPO} -Dversion.application=${VERSION} -DskipTests -Dmaven.install.skip=true -s settings.xml deploy
