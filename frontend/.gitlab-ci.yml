@@ -1,17 +1,24 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
 variables:
+  VERSION: 1.0.${CI_PIPELINE_ID}
   FRONTEND_ARTIFACT_PATH: ${NEXUS_REPO_URL}/sausage-store-pronin-konstantin-frontend/sausage-store/${VERSION}/sausage-store-${VERSION}.tar.gz
   FRONTEND_NOTIFICATION_DATA: |
     {
-      "blocks": [
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "Frontend #${VERSION} is ready, <$FRONTEND_ARTIFACT_PATH|download artifacts>."
-          }
-        }
-      ]
+      "message": "Frontend #${VERSION} is ready, [download artifacts]($FRONTEND_ARTIFACT_PATH)"
     }
+
+stages:
+  - build
+  - test
+  - upload
+  - notify
+  - deploy
+
+cache:
+  paths:
+    - .npm/
 
 build-frontend:
   stage: build
@@ -26,8 +33,21 @@ build-frontend:
     paths:
       - frontend/dist/frontend
 
+spotbugs-sast:
+  stage: test
+  rules:
+    - changes:
+        - backend/*
+  needs:
+    - build-frontend      
+
 sonarqube-frontend:
   stage: test
+  rules:
+    - changes:
+        - frontend/*
+  needs:
+    - build-frontend      
   image: sonarsource/sonar-scanner-cli:latest
   script:
     - cd frontend
@@ -49,7 +69,7 @@ upload-frontend:
   script:
     - cd frontend/dist
     - tar czvf sausage-store-${VERSION}.tar.gz frontend
-    - curl -v -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" --upload-file sausage-store-${VERSION}.tar.gz ${FRONTEND_ARTIFACT_PATH}
+    - curl -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" --upload-file sausage-store-${VERSION}.tar.gz ${FRONTEND_ARTIFACT_PATH}
 
 slack-notification-frontend:
   stage: notify
@@ -61,3 +81,21 @@ slack-notification-frontend:
         - frontend/*
   script:
     - 'curl --request POST --header "Content-type: application/json" --data "$FRONTEND_NOTIFICATION_DATA" "$WEBHOOK_URL"'
+
+frontend-deploy:
+  stage: deploy
+  needs:
+    - upload-frontend
+  rules:
+    - when: manual
+  before_script:
+    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 600 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - scp ./frontend/sausage-store-frontend.service ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/sausage-store-frontend.service
+    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${FRONTEND_ARTIFACT_PATH}"; setsid /bin/bash -s " < ./frontend/deploy.sh

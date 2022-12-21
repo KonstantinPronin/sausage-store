@@ -1,0 +1,16 @@
+[Unit]
+Description=Backend for sausage store
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+User=jarservice
+ExecStart=java -jar /var/jarservice/sausage-store.jar
+Environment="LOG_PATH=/logs/"
+Environment="REPORT_PATH=/var/www-data/htdocs/"
+StandardOutput=file:/logs/out.log
+Restart=always    
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
