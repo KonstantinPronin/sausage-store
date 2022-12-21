@@ -3,15 +3,7 @@ variables:
   FRONTEND_ARTIFACT_PATH: ${NEXUS_REPO_URL}/sausage-store-pronin-konstantin-frontend/sausage-store/${VERSION}/sausage-store-${VERSION}.tar.gz
   FRONTEND_NOTIFICATION_DATA: |
     {
-      "blocks": [
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "Frontend #${VERSION} is ready, <$FRONTEND_ARTIFACT_PATH|download artifacts>."
-          }
-        }
-      ]
+      "message": "Frontend #${VERSION} is ready, [download artifacts]($FRONTEND_ARTIFACT_PATH)"
     }
 
 stages:

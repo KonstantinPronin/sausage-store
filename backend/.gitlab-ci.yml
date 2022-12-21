@@ -7,15 +7,7 @@ variables:
   BACKEND_ARTIFACTS_URL: ${NEXUS_REPO_URL}/sausage-store-pronin-konstantin-backend/com/yandex/practicum/devops/sausage-store/${VERSION}/sausage-store-${VERSION}.jar
   BACKEND_NOTIFICATION_DATA: |
     {
-      "blocks": [
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "Backend #${VERSION} is ready, <${BACKEND_ARTIFACTS_URL}|download artifacts>."
-          }
-        }
-      ]
+      "message": "Backend #${VERSION} is ready, [download artifacts](${BACKEND_ARTIFACTS_URL})."
     }
 
 stages:
