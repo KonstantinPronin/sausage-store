@@ -1,4 +1,9 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
 variables:
+  VERSION: 1.0.${CI_PIPELINE_ID}
+  M2_REPO: ${CI_PROJECT_DIR}/.m2/repository
   BACKEND_NOTIFICATION_DATA: |
     {
       "blocks": [
@@ -12,6 +17,16 @@ variables:
       ]
     }
 
+stages:
+  - build
+  - test
+  - upload
+  - notify
+
+cache:
+  paths:
+    - ${M2_REPO}
+
 build-backend:
   stage: build
   rules:
@@ -23,7 +38,15 @@ build-backend:
   artifacts:
     paths:
       - backend/target/sausage-store-${VERSION}.jar
-      - ${CI_PROJECT_DIR}/.m2/
+
+spotbugs-sast:
+  stage: test
+  variables:
+    COMPILE: "false"
+    SAST_JAVA_VERSION: 16
+    MAVEN_REPO_PATH: ${M2_REPO}
+  needs:
+    - build-backend
 
 sonarqube-backend:
   stage: test
@@ -36,7 +59,7 @@ sonarqube-backend:
       -Dsonar.projectName=${SONAR_BACKEND_PROJECT_KEY}
       -Dsonar.projectKey=${SONAR_BACKEND_PROJECT_KEY}
       -Dsonar.host.url=${SONARQUBE_URL}
-      -Dsonar.login=${SONARQUBE_LOGIN}     
+      -Dsonar.login=${SONARQUBE_LOGIN}
 
 upload-backend:
   stage: upload
