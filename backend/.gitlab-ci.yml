@@ -4,6 +4,7 @@ include:
 variables:
   VERSION: 1.0.${CI_PIPELINE_ID}
   M2_REPO: ${CI_PROJECT_DIR}/.m2/repository
+  BACKEND_ARTIFACTS_URL: ${NEXUS_REPO_URL}/sausage-store-pronin-konstantin-backend/com/yandex/practicum/devops/sausage-store/${VERSION}/sausage-store-${VERSION}.jar
   BACKEND_NOTIFICATION_DATA: |
     {
       "blocks": [
@@ -11,7 +12,7 @@ variables:
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": "Backend #${VERSION} is ready, <${NEXUS_REPO_URL}/sausage-store-pronin-konstantin-backend/com/yandex/practicum/devops/sausage-store/${VERSION}/sausage-store-${VERSION}.jar|download artifacts>."
+            "text": "Backend #${VERSION} is ready, <${BACKEND_ARTIFACTS_URL}|download artifacts>."
           }
         }
       ]
@@ -22,6 +23,7 @@ stages:
   - test
   - upload
   - notify
+  - deploy
 
 cache:
   paths:
@@ -82,3 +84,19 @@ slack-notification-backend:
         - backend/*
   script:
     - 'curl --request POST --header "Content-type: application/json" --data "$BACKEND_NOTIFICATION_DATA" "$WEBHOOK_URL"'
+
+backend-deploy:
+  stage: deploy
+  needs:
+    - upload-backend
+  before_script:
+    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 600 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - scp ./backend/sausage-store-backend.service ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/sausage-store-backend.service
+    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${BACKEND_ARTIFACTS_URL}"; setsid /bin/bash -s " < ./backend/deploy.sh 

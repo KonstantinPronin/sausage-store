@@ -19,6 +19,7 @@ stages:
   - test
   - upload
   - notify
+  - deploy
 
 cache:
   paths:
@@ -60,7 +61,7 @@ upload-frontend:
   script:
     - cd frontend/dist
     - tar czvf sausage-store-${VERSION}.tar.gz frontend
-    - curl -v -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" --upload-file sausage-store-${VERSION}.tar.gz ${FRONTEND_ARTIFACT_PATH}
+    - curl -u "${NEXUS_REPO_USER}:${NEXUS_REPO_PASS}" --upload-file sausage-store-${VERSION}.tar.gz ${FRONTEND_ARTIFACT_PATH}
 
 slack-notification-frontend:
   stage: notify
@@ -72,3 +73,20 @@ slack-notification-frontend:
         - frontend/*
   script:
     - 'curl --request POST --header "Content-type: application/json" --data "$FRONTEND_NOTIFICATION_DATA" "$WEBHOOK_URL"'
+
+frontend-deploy:
+  stage: deploy
+  needs:
+    - upload-frontend
+  before_script:
+    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 600 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - scp ./frontend/sausage-store-frontend.service ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/sausage-store-frontend.service
+    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${FRONTEND_ARTIFACT_PATH}"; setsid /bin/bash -s " < ./frontend/deploy.sh 
+

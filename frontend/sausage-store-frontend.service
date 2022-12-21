@@ -1,0 +1,16 @@
+[Unit]
+Description=Frontend for sausage store
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+User=front-user
+ExecStart=http-server /var/www-data/dist/frontend/ -p 8081 --proxy http://localhost:8080
+Environment="LOG_PATH=/logs/"
+Environment="REPORT_PATH=/var/www-data/htdocs/"
+StandardOutput=file:/logs/out-front.log
+Restart=always    
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
