@@ -32,6 +32,9 @@ build-frontend:
 
 sonarqube-frontend:
   stage: test
+  rules:
+    - changes:
+        - frontend/*
   image: sonarsource/sonar-scanner-cli:latest
   script:
     - cd frontend
@@ -70,6 +73,8 @@ frontend-deploy:
   stage: deploy
   needs:
     - upload-frontend
+  rules:
+    - when: manual
   before_script:
     - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
     - eval $(ssh-agent -s)
@@ -80,5 +85,4 @@ frontend-deploy:
     - chmod 644 ~/.ssh/known_hosts
   script:
     - scp ./frontend/sausage-store-frontend.service ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/sausage-store-frontend.service
-    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${FRONTEND_ARTIFACT_PATH}"; setsid /bin/bash -s " < ./frontend/deploy.sh 
-
+    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${FRONTEND_ARTIFACT_PATH}"; setsid /bin/bash -s " < ./frontend/deploy.sh

@@ -35,6 +35,9 @@ build-backend:
 
 spotbugs-sast:
   stage: test
+  rules:
+    - changes:
+        - backend/*
   variables:
     COMPILE: "false"
     SAST_JAVA_VERSION: 16
@@ -44,6 +47,9 @@ spotbugs-sast:
 
 sonarqube-backend:
   stage: test
+  rules:
+    - changes:
+        - backend/*
   image: maven:3.8-openjdk-16
   script:
     - cd backend
@@ -81,6 +87,8 @@ backend-deploy:
   stage: deploy
   needs:
     - upload-backend
+  rules:
+    - when: manual
   before_script:
     - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
     - eval $(ssh-agent -s)
@@ -91,4 +99,4 @@ backend-deploy:
     - chmod 644 ~/.ssh/known_hosts
   script:
     - scp ./backend/sausage-store-backend.service ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/sausage-store-backend.service
-    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${BACKEND_ARTIFACTS_URL}"; setsid /bin/bash -s " < ./backend/deploy.sh 
+    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${BACKEND_ARTIFACTS_URL}"; setsid /bin/bash -s " < ./backend/deploy.sh
