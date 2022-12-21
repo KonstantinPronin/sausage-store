@@ -38,18 +38,20 @@ spotbugs-sast:
   rules:
     - changes:
         - backend/*
+  needs:
+    - build-backend      
   variables:
     COMPILE: "false"
     SAST_JAVA_VERSION: 16
     MAVEN_REPO_PATH: ${M2_REPO}
-  needs:
-    - build-backend
 
 sonarqube-backend:
   stage: test
   rules:
     - changes:
         - backend/*
+  needs:
+    - build-backend      
   image: maven:3.8-openjdk-16
   script:
     - cd backend
