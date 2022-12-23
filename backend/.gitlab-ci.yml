@@ -89,6 +89,8 @@ backend-deploy:
   stage: deploy
   needs:
     - upload-backend
+  environment:
+    name: production-backend  
   rules:
     - when: manual
   before_script:
