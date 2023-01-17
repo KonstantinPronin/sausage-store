@@ -8,7 +8,7 @@ User=front-user
 ExecStart=http-server /var/www-data/dist/frontend/ -p 8081 --proxy http://localhost:8080
 Environment="LOG_PATH=/logs/"
 Environment="REPORT_PATH=/var/www-data/htdocs/"
-StandardOutput=file:/logs/out-front.log
+StandardOutput=file:/opt/log/sausage-store-frontend.log
 Restart=always    
 RestartSec=1
 
