@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.0</version>
+        <version>2.7.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.yandex.practicum.devops</groupId>
@@ -22,6 +22,7 @@
         <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
         <sonar.language>java</sonar.language>
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
+        <flyway.version>9.8.1</flyway.version>
     </properties>
 
     <distributionManagement>
@@ -102,6 +103,12 @@
             <artifactId>junit-vintage-engine</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -130,6 +137,16 @@
                     </execution>
                 </executions>
             </plugin>
+                <plugin>
+                    <groupId>org.flywaydb</groupId>
+                    <artifactId>flyway-maven-plugin</artifactId>
+                    <version>${flyway.version}</version>
+                    <configuration>
+                        <configFiles>
+                            <configFile>flyway.conf</configFile>
+                        </configFiles>
+                    </configuration>
+                </plugin>
         </plugins>
     </build>
 
