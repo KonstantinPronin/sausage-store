@@ -8,7 +8,7 @@ User=jarservice
 ExecStart=java -jar /var/jarservice/sausage-store.jar
 Environment="LOG_PATH=/logs/"
 Environment="REPORT_PATH=/var/www-data/htdocs/"
-EnvironmentFile=file:/var/jarservice/postgre-env
+EnvironmentFile=/var/jarservice/postgre.env
 StandardOutput=file:/opt/log/sausage-store-backend.log
 Restart=always    
 RestartSec=1
