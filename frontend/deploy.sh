@@ -1,10 +1,19 @@
-set -xe
+#!/bin/bash
+set +e
+cat > .env <<EOF
+EOF
 
-sudo cp -rf sausage-store-frontend.service /etc/systemd/system/sausage-store-frontend.service < /dev/null
-sudo rm -rf /var/www-data/dist/frontend||true < /dev/null
+docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+docker network create -d bridge sausage_network || true
+docker pull ${CI_REGISTRY_IMAGE}/sausage-frontend:${VERSION}
+docker stop frontend || true
+docker rm frontend || true
+set -e
 
-curl -u ${NEXUS_REPO_USER}:${NEXUS_REPO_PASS} -o sausage-store.tar ${ARTIFACTS_URL}
-sudo tar -xf sausage-store.tar -C /var/www-data/dist/ < /dev/null
-
-sudo systemctl daemon-reload < /dev/null
-sudo systemctl restart sausage-store-backend < /dev/null
+docker run -d --name frontend \
+    --network=sausage_network \
+    --restart always \
+    --pull always \
+    --env-file .env \
+    -p 80:80 \
+    ${CI_REGISTRY_IMAGE}/sausage-frontend:${VERSION}

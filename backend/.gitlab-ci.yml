@@ -1,6 +1,8 @@
 include:
   - template: Security/SAST.gitlab-ci.yml
-
+  - project: 'templates/ci'
+    file: 'DockerInDockerTemplate.yml'
+    
 variables:
   VERSION: 1.0.${CI_PIPELINE_ID}
   M2_REPO: ${CI_PROJECT_DIR}/.m2/repository
@@ -11,9 +13,8 @@ variables:
     }
 
 stages:
-  - build
   - test
-  - upload
+  - build
   - notify
   - deploy
 
@@ -21,25 +22,11 @@ cache:
   paths:
     - ${M2_REPO}
 
-build-backend:
-  stage: build
-  rules:
-    - changes:
-        - backend/*
-  script:
-    - cd backend
-    - mvn -Dmaven.repo.local=${M2_REPO} -Dversion.application=${VERSION} package
-  artifacts:
-    paths:
-      - backend/target/sausage-store-${VERSION}.jar
-
 spotbugs-sast:
   stage: test
   rules:
     - changes:
         - backend/*
-  needs:
-    - build-backend      
   variables:
     COMPILE: "false"
     SAST_JAVA_VERSION: 16
@@ -50,8 +37,6 @@ sonarqube-backend:
   rules:
     - changes:
         - backend/*
-  needs:
-    - build-backend      
   image: maven:3.8-openjdk-16
   script:
     - cd backend
@@ -63,21 +48,31 @@ sonarqube-backend:
       -Dsonar.host.url=${SONARQUBE_URL}
       -Dsonar.login=${SONARQUBE_LOGIN}
 
-upload-backend:
-  stage: upload
-  needs:
-    - build-backend
+build-backend:
+  stage: build
   rules:
     - changes:
         - backend/*
+  needs:
+    - spotbugs-sast
+    - sonarqube-backend         
+  image: docker:20.10.12-dind-rootless
+  before_script:
+    - until docker info; do sleep 1; done
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - cd backend
-    - mvn -Dmaven.repo.local=${M2_REPO} -Dversion.application=${VERSION} -DskipTests -Dmaven.install.skip=true -s settings.xml deploy
+    - >
+      docker build
+      --build-arg VERSION=${VERSION}
+      --tag $CI_REGISTRY_IMAGE/sausage-backend:$VERSION
+      .
+    - docker push $CI_REGISTRY_IMAGE/sausage-backend:$VERSION
 
 slack-notification-backend:
   stage: notify
   needs:
-    - upload-backend
+    - build-backend
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /\[notify]/
       changes:
@@ -88,9 +83,9 @@ slack-notification-backend:
 backend-deploy:
   stage: deploy
   needs:
-    - upload-backend
+    - build-backend
   environment:
-    name: production-backend  
+    name: production-backend
   rules:
     - when: manual
   before_script:
@@ -102,5 +97,14 @@ backend-deploy:
     - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
-    - scp ./backend/sausage-store-backend.service ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/sausage-store-backend.service
-    - ssh ${DEV_USER}@${DEV_HOST} "export "NEXUS_REPO_USER=${NEXUS_REPO_USER}"; export "NEXUS_REPO_PASS=${NEXUS_REPO_PASS}"; export "ARTIFACTS_URL=${BACKEND_ARTIFACTS_URL}"; setsid /bin/bash -s " < ./backend/deploy.sh
+    - ssh ${DEV_USER}@${DEV_HOST}
+      "export "VERSION=${VERSION}";
+      export "PSQL_CONNECTION_STRING=${PSQL_CONNECTION_STRING}";
+      export "PSQL_USER=${PSQL_USER}";
+      export "PSQL_PASSWORD=${PSQL_PASSWORD}";
+      export "MONGO_CONNECTION_STRING=${MONGO_CONNECTION_STRING}";
+      export "CI_REGISTRY_USER=${CI_REGISTRY_USER}";
+      export "CI_REGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD}";
+      export "CI_REGISTRY=${CI_REGISTRY}";
+      export "CI_REGISTRY_IMAGE=${CI_REGISTRY_IMAGE}";
+      /bin/bash -s " < ./backend/deploy.sh
