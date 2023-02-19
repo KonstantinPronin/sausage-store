@@ -88,21 +88,25 @@ backend-deploy:
     name: production-backend
   rules:
     - when: manual
+  image: vault:1.11.3  
   before_script:
-    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
+    - apk add openssh-client bash
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
-    - chmod 600 ~/.ssh
+    - chmod 700 ~/.ssh
     - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
+    - export VAULT_CACERT=${CI_PROJECT_DIR}/backend/vault.ca
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=sausage-store jwt=$CI_JOB_JWT)"
     - ssh ${DEV_USER}@${DEV_HOST}
       "export "VERSION=${VERSION}";
+      export "VAULT_TOKEN=${VAULT_TOKEN}";
       export "PSQL_CONNECTION_STRING=${PSQL_CONNECTION_STRING}";
-      export "PSQL_USER=${PSQL_USER}";
-      export "PSQL_PASSWORD=${PSQL_PASSWORD}";
-      export "MONGO_CONNECTION_STRING=${MONGO_CONNECTION_STRING}";
+      export "PSQL_USER=$(vault kv get -field=passcode secret/psql.user)";
+      export "PSQL_PASSWORD=$(vault kv get -field=passcode secret/psql.password)";
+      export "MONGO_CONNECTION_STRING=$(vault kv get -field=passcode secret/mongo.connection.string)";
       export "CI_REGISTRY_USER=${CI_REGISTRY_USER}";
       export "CI_REGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD}";
       export "CI_REGISTRY=${CI_REGISTRY}";

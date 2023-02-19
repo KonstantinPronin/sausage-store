@@ -23,6 +23,7 @@
         <sonar.language>java</sonar.language>
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
         <flyway.version>9.8.1</flyway.version>
+        <spring-cloud.version>2021.0.3</spring-cloud.version>
     </properties>
 
     <distributionManagement>
@@ -33,15 +34,25 @@
         </repository>
     </distributionManagement>
 
-    <dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
-       <dependency>
+    <dependencies>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
-
-       <dependency>
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.3.1</version>
@@ -115,6 +126,11 @@
             <artifactId>flyway-core</artifactId>
             <version>${flyway.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-vault-config</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -143,16 +159,16 @@
                     </execution>
                 </executions>
             </plugin>
-                <plugin>
-                    <groupId>org.flywaydb</groupId>
-                    <artifactId>flyway-maven-plugin</artifactId>
-                    <version>${flyway.version}</version>
-                    <configuration>
-                        <configFiles>
-                            <configFile>flyway.conf</configFile>
-                        </configFiles>
-                    </configuration>
-                </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>${flyway.version}</version>
+                <configuration>
+                    <configFiles>
+                        <configFile>flyway.conf</configFile>
+                    </configFiles>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
