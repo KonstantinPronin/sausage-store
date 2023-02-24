@@ -5,11 +5,10 @@ include:
     
 variables:
   VERSION: 1.0.${CI_PIPELINE_ID}
-  M2_REPO: ${CI_PROJECT_DIR}/.m2/repository
-  BACKEND_ARTIFACTS_URL: $CI_REGISTRY_IMAGE/sausage-backend:$VERSION
-  BACKEND_NOTIFICATION_DATA: |
+  BACKEND_REPORT_ARTIFACTS_URL: $CI_REGISTRY_IMAGE/sausage-report:$VERSION
+  BACKEND_REPORT_NOTIFICATION_DATA: |
     {
-      "message": "Backend #${VERSION} is ready, [download artifacts](${BACKEND_ARTIFACTS_URL})."
+      "message": "Backend-report #${VERSION} is ready, [download artifacts](${BACKEND_REPORT_ARTIFACTS_URL})."
     }
 
 stages:
@@ -18,74 +17,60 @@ stages:
   - notify
   - deploy
 
-cache:
-  paths:
-    - ${M2_REPO}
-
 spotbugs-sast:
   stage: test
   rules:
     - changes:
-        - backend/*
-  variables:
-    COMPILE: "false"
-    SAST_JAVA_VERSION: 16
-    MAVEN_REPO_PATH: ${M2_REPO}
+        - backend-report/*
 
-sonarqube-backend:
+unit-tests:
   stage: test
   rules:
-    - changes:
-        - backend/*
-  image: maven:3.8-openjdk-16
+  - changes:
+      - backend-report/*  
+  image: golang:1.14  
   script:
-    - cd backend
-    - >
-      mvn verify sonar:sonar 
-      -Dsonar.qualitygate.wait=true
-      -Dsonar.projectName=${SONAR_BACKEND_PROJECT_KEY}
-      -Dsonar.projectKey=${SONAR_BACKEND_PROJECT_KEY}
-      -Dsonar.host.url=${SONARQUBE_URL}
-      -Dsonar.login=${SONARQUBE_LOGIN}
+    - cd backend-report
+    - go test ./app/services/health
 
-build-backend:
+build-backend-report:
   stage: build
   rules:
     - changes:
-        - backend/*
+        - backend-report/*
   needs:
     - spotbugs-sast
-    - sonarqube-backend         
+    - unit-tests 
   image: docker:20.10.12-dind-rootless
   before_script:
     - until docker info; do sleep 1; done
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - cd backend
+    - cd backend-report
     - >
       docker build
       --build-arg VERSION=${VERSION}
-      --tag $CI_REGISTRY_IMAGE/sausage-backend:$VERSION
+      --tag $CI_REGISTRY_IMAGE/sausage-report:$VERSION
       .
-    - docker push $CI_REGISTRY_IMAGE/sausage-backend:$VERSION
+    - docker push $CI_REGISTRY_IMAGE/sausage-report:$VERSION
 
-slack-notification-backend:
+slack-notification-backend-report:
   stage: notify
   needs:
-    - build-backend
+    - build-backend-report
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /\[notify]/
       changes:
-        - backend/*
+        - backend-report/*
   script:
-    - 'curl --request POST --header "Content-type: application/json" --data "$BACKEND_NOTIFICATION_DATA" "$WEBHOOK_URL"'
+    - 'curl --request POST --header "Content-type: application/json" --data "$BACKEND_REPORT_NOTIFICATION_DATA" "$WEBHOOK_URL"'
 
-backend-deploy:
+backend-report-deploy:
   stage: deploy
   needs:
-    - build-backend
+    - build-backend-report
   environment:
-    name: production-backend
+    name: production-backend-report
   rules:
     - when: manual
   image: vault:1.11.3  
@@ -112,4 +97,4 @@ backend-deploy:
       export "CI_REGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD}";
       export "CI_REGISTRY=${CI_REGISTRY}";
       export "CI_REGISTRY_IMAGE=${CI_REGISTRY_IMAGE}";
-      /bin/bash -s " < ./backend/deploy.sh
+      /bin/bash -s " < ./backend-report/deploy.sh

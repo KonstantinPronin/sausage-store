@@ -29,7 +29,7 @@ WORKDIR /root/
 
 # Copy Yandex Cloud Certificate Authority
 COPY --from=builder /app/YandexInternalRootCA.crt .
-
+    
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
 

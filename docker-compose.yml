@@ -1,0 +1,27 @@
+version: "3.3"
+
+services:
+  backend:
+    image: ${CI_REGISTRY_IMAGE}/sausage-backend:${VERSION}
+    container_name: sausage-store-backend
+    env_file:
+      - .env
+    networks:
+      - sausage-store
+  backend-report:
+    image: ${CI_REGISTRY_IMAGE}/sausage-report:${VERSION}
+    container_name: sausage-store-backend-report
+    env_file:
+      - .env
+    networks:
+      - sausage-store
+  frontend:
+    image: ${CI_REGISTRY_IMAGE}/sausage-frontend:${VERSION}
+    container_name: sausage-store-frontend
+    ports:
+      - "80:80"
+    networks:
+      - sausage-store
+
+networks:
+  sausage-store: 

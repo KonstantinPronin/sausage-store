@@ -18,4 +18,4 @@ docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 # docker rm backend || true
 set -e
 
-docker-compose up -d backend
+docker-compose up -d backend-report

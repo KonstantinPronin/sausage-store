@@ -20,3 +20,13 @@ backend:
   rules:
     - changes:
         - backend/**/*
+
+backend-report:
+  stage: module-pipelines
+  trigger:
+    include:
+      - local: "backend-report/.gitlab-ci.yml"
+    strategy: depend
+  rules:
+    - changes:
+        - backend-report/**/*
