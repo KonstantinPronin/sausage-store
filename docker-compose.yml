@@ -3,9 +3,10 @@ version: "3.3"
 services:
   backend:
     image: ${CI_REGISTRY_IMAGE}/sausage-backend:${VERSION}
-    container_name: sausage-store-backend
     env_file:
       - .env
+    environment:
+      - VIRTUAL_HOST=backend.sausage-store
     networks:
       - sausage-store
   backend-report:
@@ -18,6 +19,8 @@ services:
   frontend:
     image: ${CI_REGISTRY_IMAGE}/sausage-frontend:${VERSION}
     container_name: sausage-store-frontend
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
     ports:
       - "80:80"
     networks:
