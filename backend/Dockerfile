@@ -15,12 +15,13 @@ ARG VERSION
 
 WORKDIR /app
 COPY --from=builder /usr/src/app/YandexInternalRootCA.crt .
-RUN keytool -importcert -file YandexInternalRootCA.crt \
-    -alias yandex -cacerts -storepass changeit -noprompt \
-    && rm -rf YandexInternalRootCA.crt \
+COPY vault.crt .
+RUN keytool -importcert -file YandexInternalRootCA.crt -alias yandex -cacerts -storepass changeit -noprompt \
+    && keytool -importcert -file vault.crt -alias vault -cacerts -storepass changeit -noprompt \
+    && rm -rf YandexInternalRootCA.crt vault.crt \
     && addgroup --system jaruser \
     && adduser -S -s /bin/false -G jaruser jaruser -D -H \
-    && apk add --no-cache dumb-init==1.2.5-r0
+    && apk add --no-cache dumb-init=1.2.5-r0 curl=7.79.1-r3
 COPY --chown=jaruser:jaruser \
      --from=builder /usr/src/app/target/sausage-store-${VERSION}.jar ./sausage-store.jar
 

@@ -1,7 +1,7 @@
 version: "3.3"
 
 services:
-  backend:
+  backend-blue:
     image: ${CI_REGISTRY_IMAGE}/sausage-backend:${VERSION}
     env_file:
       - .env
@@ -9,6 +9,26 @@ services:
       - VIRTUAL_HOST=backend.sausage-store
     networks:
       - sausage-store
+    healthcheck:
+      test: curl --fail -s http://localhost:8080/actuator/health
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 6   
+  backend-green:
+    image: ${CI_REGISTRY_IMAGE}/sausage-backend:${VERSION}
+    env_file:
+      - .env
+    environment:
+      - VIRTUAL_HOST=backend.sausage-store
+    networks:
+      - sausage-store
+    healthcheck:
+      test: curl --fail -s http://localhost:8080/actuator/health
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 6    
   backend-report:
     image: ${CI_REGISTRY_IMAGE}/sausage-report:${VERSION}
     container_name: sausage-store-backend-report
