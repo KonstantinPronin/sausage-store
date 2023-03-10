@@ -3,6 +3,6 @@ WORKDIR /usr/src/app
 COPY . .
 RUN npm install && npm run build
 
-FROM nginxproxy/nginx-proxy:1.2
+FROM nginx:1.23-alpine
 COPY --from=builder /usr/src/app/dist/frontend /usr/share/nginx/html
-COPY nginx.tmpl /app/nginx.tmpl
+EXPOSE 8080 
