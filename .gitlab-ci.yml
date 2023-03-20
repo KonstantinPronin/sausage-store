@@ -1,5 +1,6 @@
 stages:
   - module-pipelines
+  - k8s-sync
 
 frontend:
   stage: module-pipelines
@@ -30,3 +31,15 @@ backend-report:
   rules:
     - changes:
         - backend-report/**/*
+
+argocd-sync:
+  stage: k8s-sync
+  image: argoproj/argocd:v2.3.3
+  rules:
+    - changes:
+        - frontend/**/*
+        - backend/**/*
+        - backend-report/**/*
+      when: manual
+  script:
+    - argocd --grpc-web --auth-token $ARGO_TOKEN --server $ARGO_SERVER app sync sausage-store-std-011-009

@@ -69,32 +69,9 @@ backend-report-deploy:
   stage: deploy
   needs:
     - build-backend-report
-  environment:
-    name: production-backend-report
+  image: argoproj/argocd:v2.3.3
   rules:
-    - when: manual
-  image: vault:1.11.3  
-  before_script:
-    - apk add openssh-client bash
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
+    - changes:
+        - backend-report/*
   script:
-    - export VAULT_CACERT=${CI_PROJECT_DIR}/vault.ca
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=sausage-store jwt=$CI_JOB_JWT)"
-    - scp docker-compose.yml ${DEV_USER}@${DEV_HOST}:/home/${DEV_USER}/docker-compose.yml
-    - ssh ${DEV_USER}@${DEV_HOST}
-      "export "VERSION=${VERSION}";
-      export "VAULT_TOKEN=${VAULT_TOKEN}";
-      export "PSQL_CONNECTION_STRING=${PSQL_CONNECTION_STRING}";
-      export "PSQL_USER=$(vault kv get -field=passcode secret/psql.user)";
-      export "PSQL_PASSWORD=$(vault kv get -field=passcode secret/psql.password)";
-      export "MONGO_CONNECTION_STRING=$(vault kv get -field=passcode secret/mongo.connection.string)";
-      export "CI_REGISTRY_USER=${CI_REGISTRY_USER}";
-      export "CI_REGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD}";
-      export "CI_REGISTRY=${CI_REGISTRY}";
-      export "CI_REGISTRY_IMAGE=${CI_REGISTRY_IMAGE}";
-      /bin/bash -s " < ./backend-report/deploy.sh
+    - argocd --grpc-web --auth-token $ARGO_TOKEN --server $ARGO_SERVER app set sausage-store-std-011-009 -p backend-report.image.tag=$VERSION
